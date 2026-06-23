@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 
-const PI_API = "http://YOUR_RASPBERRY_PI_IP:5000";
+const PI_API = "http://172.20.10.14:5000";
 
 export default function Results() {
   const { scanId } = useParams();
