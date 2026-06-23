@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 
-const PI_API = "http://172.20.10.14:5000";
+const PI_API = "http://192.168.137.2:5000";
 
 export default function Scan() {
   const [loading, setLoading] = useState(false);
