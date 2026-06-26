@@ -1,5 +1,12 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
+import {
+  Activity,
+  ClipboardList,
+  HeartPulse,
+  Info,
+  Camera,
+} from "lucide-react";
 
 const PI_API = "http://172.20.10.2:5000";
 
@@ -263,17 +270,39 @@ function RiskGauge({ score, maxScore, riskLabel }) {
 }
 
 function BreakdownItem({ title, score, active, rationale }) {
+  const [showInfo, setShowInfo] = useState(false);
+
   return (
     <div className={`breakdown-item ${active ? "active" : ""}`}>
       <div className="breakdown-top">
-        <span>{title}</span>
+        <div className="breakdown-title-wrap">
+          <span>{title}</span>
+
+          {active && (
+            <button
+              type="button"
+              className="info-button"
+              onClick={() => setShowInfo(!showInfo)}
+              onMouseEnter={() => setShowInfo(true)}
+              onMouseLeave={() => setShowInfo(false)}
+              aria-label={`Show ${title} explanation`}
+            >
+              <Info size={17} strokeWidth={2.6} />
+            </button>
+          )}
+        </div>
+
         <strong>{score}</strong>
       </div>
 
-      {active ? (
-        <p>{rationale}</p>
-      ) : (
+      {!active && (
         <p className="muted">No risk point added for this category.</p>
+      )}
+
+      {active && showInfo && (
+        <div className="info-popover">
+          {rationale}
+        </div>
       )}
     </div>
   );
@@ -353,22 +382,24 @@ export default function Results() {
         <section className="content-card">
           <div className="badge">SCAN RESULT</div>
 
+
           <div className="result-tabs">
-            {[
-              ["overview", "Score"],
-              ["breakdown", "Breakdown"],
-              ["maintenance", "Care"],
-            ].map(([key, label]) => (
-              <button
-                key={key}
-                type="button"
-                className={`result-tab ${activeTab === key ? "active" : ""}`}
-                onClick={() => setActiveTab(key)}
-              >
-                {label}
-              </button>
-            ))}
-          </div>
+          {[
+            ["overview", "Score", Activity],
+            ["breakdown", "Breakdown", ClipboardList],
+            ["maintenance", "Care", HeartPulse],
+          ].map(([key, label, Icon]) => (
+            <button
+              key={key}
+              type="button"
+              className={`result-tab ${activeTab === key ? "active" : ""}`}
+              onClick={() => setActiveTab(key)}
+            >
+              <Icon size={17} strokeWidth={2.6} />
+              <span>{label}</span>
+            </button>
+          ))}
+        </div>
 
           {activeTab === "overview" && (
             <>
@@ -514,10 +545,10 @@ export default function Results() {
           )}
 
           <p className="scan-id">Scan ID: {scanId}</p>
-
-          <button className="primary-button" onClick={() => navigate("/scan")}>
-            📷 New Scan
-          </button>
+          <button className="primary-button new-scan-button" onClick={() => navigate("/scan")}>
+          <Camera size={21} strokeWidth={2.8} />
+          <span>New Scan</span>
+        </button>
         </section>
       </section>
     </main>
