@@ -64,78 +64,78 @@ function RiskGauge({ score, maxScore, riskLabel }) {
 
   return (
     <div className="risk-gauge-card">
-      <div className="gauge-wrap">
-        <svg viewBox="0 0 300 180" className="risk-gauge">
-          <path
-            d="M 35 150 A 115 115 0 0 1 265 150"
-            fill="none"
-            stroke="#eef0f4"
-            strokeWidth="32"
+      <svg viewBox="0 0 320 210" className="risk-gauge">
+        <path
+          d="M 55 160 A 105 105 0 0 1 265 160"
+          fill="none"
+          stroke="#eef0f4"
+          strokeWidth="34"
+          strokeLinecap="round"
+        />
+
+        <path
+          d="M 55 160 A 105 105 0 0 1 107 69"
+          fill="none"
+          stroke="#37d66f"
+          strokeWidth="34"
+        />
+
+        <path
+          d="M 107 69 A 105 105 0 0 1 160 55"
+          fill="none"
+          stroke="#ffd84d"
+          strokeWidth="34"
+        />
+
+        <path
+          d="M 160 55 A 105 105 0 0 1 213 69"
+          fill="none"
+          stroke="#ffa02b"
+          strokeWidth="34"
+        />
+
+        <path
+          d="M 213 69 A 105 105 0 0 1 265 160"
+          fill="none"
+          stroke="#ff3364"
+          strokeWidth="34"
+          strokeLinecap="round"
+        />
+
+        <g transform={`rotate(${angle} 160 160)`}>
+          <line
+            x1="160"
+            y1="160"
+            x2="160"
+            y2="78"
+            stroke="#112b5c"
+            strokeWidth="9"
             strokeLinecap="round"
           />
+        </g>
 
-          <path
-            d="M 35 150 A 115 115 0 0 1 92 50"
-            fill="none"
-            stroke="#3bd671"
-            strokeWidth="32"
-          />
+        <circle cx="160" cy="160" r="17" fill="#112b5c" />
+        <circle cx="160" cy="160" r="8" fill="white" />
 
-          <path
-            d="M 92 50 A 115 115 0 0 1 150 35"
-            fill="none"
-            stroke="#ffd447"
-            strokeWidth="32"
-          />
+        <text x="55" y="197" className="gauge-label" textAnchor="middle">
+          No Risk
+        </text>
+        <text x="108" y="42" className="gauge-label" textAnchor="middle">
+          Low
+        </text>
+        <text x="160" y="30" className="gauge-label" textAnchor="middle">
+          Moderate
+        </text>
+        <text x="232" y="42" className="gauge-label" textAnchor="middle">
+          High
+        </text>
+      </svg>
 
-          <path
-            d="M 150 35 A 115 115 0 0 1 208 50"
-            fill="none"
-            stroke="#ff9f2e"
-            strokeWidth="32"
-          />
-
-          <path
-            d="M 208 50 A 115 115 0 0 1 265 150"
-            fill="none"
-            stroke="#ff375f"
-            strokeWidth="32"
-            strokeLinecap="round"
-          />
-
-          <g transform={`rotate(${angle} 150 150)`}>
-            <line
-              x1="150"
-              y1="150"
-              x2="150"
-              y2="58"
-              stroke="#112b5c"
-              strokeWidth="8"
-              strokeLinecap="round"
-            />
-          </g>
-
-          <circle cx="150" cy="150" r="13" fill="#112b5c" />
-          <circle cx="150" cy="150" r="6" fill="white" />
-
-          <text x="45" y="170" className="gauge-label">
-            No
-          </text>
-          <text x="92" y="55" className="gauge-label">
-            Low
-          </text>
-          <text x="150" y="28" className="gauge-label" textAnchor="middle">
-            Moderate
-          </text>
-          <text x="230" y="55" className="gauge-label">
-            High
-          </text>
-        </svg>
-      </div>
-
-      <h3>{riskLabel}</h3>
-      <div className="score-number">
-        {score.toFixed(1)} / {maxScore}
+      <div className="risk-summary">
+        <h3>{riskLabel}</h3>
+        <div className="score-number">
+          {score.toFixed(1)} / {maxScore}
+        </div>
       </div>
     </div>
   );
