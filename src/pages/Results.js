@@ -13,8 +13,6 @@ function calculateModifiedSinbad(result) {
   const areaMm2 = Number(result.segmentation_area_mm2 || 0);
   const areaCm2 = areaMm2 / 100;
 
-  let score = 0;
-
   const siteScore =
     ulcerRegion.includes("midfoot") || ulcerRegion.includes("hindfoot") ? 1 : 0;
 
@@ -29,7 +27,7 @@ function calculateModifiedSinbad(result) {
 
   const areaScore = areaCm2 >= 1 ? 1 : 0;
 
-  score = siteScore + ischemiaScore + bacterialScore + areaScore;
+  const score = siteScore + ischemiaScore + bacterialScore + areaScore;
 
   let riskLabel = "No Risk";
   let riskDescription = "No major risk indicators detected.";
@@ -55,6 +53,77 @@ function calculateModifiedSinbad(result) {
     riskLabel,
     riskDescription,
     areaCm2,
+    necrosisPct,
+    sloughPct,
+    granulationPct,
+  };
+}
+
+function getRecommendation(result) {
+  const necrosis = Number(result.necrosis_ratio || 0) * 100;
+  const slough = Number(result.slough_ratio || 0) * 100;
+  const granulation = Number(result.granulation_ratio || 0) * 100;
+
+  if (necrosis > 0) {
+    return {
+      tissue: "Necrotic tissue",
+      goal:
+        "Remove devitalized tissue. Do not attempt debridement if vascular insufficiency is suspected. Keep dry and refer for vascular assessment.",
+      dressingRole:
+        "Hydrate wound bed and promote autolytic debridement.",
+      woundBed:
+        "Surgical or mechanical debridement if clinically appropriate.",
+      primary:
+        "Hydrogel or honey.",
+      secondary:
+        "Polyurethane film dressing.",
+    };
+  }
+
+  if (slough > granulation && slough > 0) {
+    return {
+      tissue: "Sloughy wound bed",
+      goal:
+        "Remove slough and provide a clean wound bed for granulation tissue.",
+      dressingRole:
+        "Rehydrate wound bed, control moisture balance, and promote autolytic debridement.",
+      woundBed:
+        "Wound cleansing. Consider surgical or mechanical debridement if appropriate.",
+      primary:
+        "Hydrogel, honey, or absorbent dressing depending on exudate.",
+      secondary:
+        "Polyurethane film dressing, low-adherent silicone dressing, or retention bandage.",
+    };
+  }
+
+  if (granulation > 0) {
+    return {
+      tissue: "Granulating wound bed",
+      goal:
+        "Promote granulation and provide a healthy wound bed for epithelialization.",
+      dressingRole:
+        "Maintain moisture balance and protect new tissue growth.",
+      woundBed:
+        "Wound cleansing. Consider barrier products if exudate is high.",
+      primary:
+        "Hydrogel, low-adherent silicone dressing, or absorbent dressing if exudate is high.",
+      secondary:
+        "Pad and/or retention bandage. Avoid overly occlusive dressings.",
+    };
+  }
+
+  return {
+    tissue: "No dominant wound tissue detected",
+    goal:
+      "Continue monitoring and reassess wound appearance.",
+    dressingRole:
+      "Protect the wound bed and maintain a clean wound environment.",
+    woundBed:
+      "Gentle wound cleansing.",
+    primary:
+      "Low-adherent dressing.",
+    secondary:
+      "Protective secondary dressing if needed.",
   };
 }
 
@@ -147,6 +216,7 @@ export default function Results() {
 
   const [result, setResult] = useState(null);
   const [error, setError] = useState("");
+  const [activeTab, setActiveTab] = useState("overview");
 
   useEffect(() => {
     async function fetchResults() {
@@ -172,9 +242,11 @@ export default function Results() {
       <main className="app-page">
         <section className="phone-card">
           <img src="/ulscore-logo.png" alt="ULScore" className="logo" />
+
           <section className="content-card">
             <h1>Could not load results</h1>
             <p className="status-text error">{error}</p>
+
             <button className="primary-button" onClick={() => navigate("/scan")}>
               Back to Scan
             </button>
@@ -189,6 +261,7 @@ export default function Results() {
       <main className="app-page">
         <section className="phone-card">
           <img src="/ulscore-logo.png" alt="ULScore" className="logo" />
+
           <section className="content-card">
             <h1>Loading Results...</h1>
             <p className="status-text">Fetching scan {scanId}</p>
@@ -199,96 +272,211 @@ export default function Results() {
   }
 
   const sinbad = calculateModifiedSinbad(result);
+  const rec = getRecommendation(result);
 
   return (
     <main className="app-page">
       <section className="phone-card">
         <img src="/ulscore-logo.png" alt="ULScore" className="logo" />
+
         <div className="gradient-wave" />
 
         <section className="content-card">
           <div className="badge">SCAN RESULT</div>
 
-          <h1>Wound Image</h1>
+          <div className="result-tabs">
+            <button
+              className={activeTab === "overview" ? "tab active" : "tab"}
+              onClick={() => setActiveTab("overview")}
+            >
+              Score
+            </button>
 
-          <img
-            src={result.boxed_image_url}
-            alt="Boxed wound result"
-            className="result-image"
-          />
+            <button
+              className={activeTab === "breakdown" ? "tab active" : "tab"}
+              onClick={() => setActiveTab("breakdown")}
+            >
+              Breakdown
+            </button>
 
-          <section className="result-panel">
-            <h2>Modified SINBAD Risk Score</h2>
+            <button
+              className={activeTab === "maintenance" ? "tab active" : "tab"}
+              onClick={() => setActiveTab("maintenance")}
+            >
+              Care
+            </button>
+          </div>
 
-            <RiskGauge
-              score={sinbad.score}
-              maxScore={sinbad.maxScore}
-              riskLabel={sinbad.riskLabel}
-            />
+          {activeTab === "overview" && (
+            <>
+              <h1>Wound Image</h1>
 
-            <p className="risk-description">{sinbad.riskDescription}</p>
+              <img
+                src={result.boxed_image_url}
+                alt="Boxed wound result"
+                className="result-image"
+              />
 
-            <div className="metric-row highlight">
-              <span>Total Score</span>
-              <strong>{sinbad.score.toFixed(1)} / {sinbad.maxScore}</strong>
-            </div>
+              <section className="result-panel">
+                <h2>Modified SINBAD Risk Score</h2>
 
-            <div className="thin-divider" />
+                <RiskGauge
+                  score={sinbad.score}
+                  maxScore={sinbad.maxScore}
+                  riskLabel={sinbad.riskLabel}
+                />
 
-            <div className="metric-row">
-              <span>Site</span>
-              <strong>{sinbad.siteScore}</strong>
-            </div>
+                <p className="risk-description">{sinbad.riskDescription}</p>
 
-            <div className="metric-row">
-              <span>Ischemia</span>
-              <strong>{sinbad.ischemiaScore}</strong>
-            </div>
+                <div className="metric-row highlight">
+                  <span>Total Score</span>
+                  <strong>
+                    {sinbad.score.toFixed(1)} / {sinbad.maxScore}
+                  </strong>
+                </div>
+              </section>
+            </>
+          )}
 
-            <div className="metric-row">
-              <span>Bacterial Infection</span>
-              <strong>{sinbad.bacterialScore}</strong>
-            </div>
+          {activeTab === "breakdown" && (
+            <section className="result-panel">
+              <h2>Score Breakdown</h2>
 
-            <div className="metric-row">
-              <span>Area</span>
-              <strong>{sinbad.areaScore}</strong>
-            </div>
+              <div className="score-breakdown-card">
+                <div className="metric-row">
+                  <span>
+                    Site
+                    {sinbad.siteScore > 0 && (
+                      <span
+                        className="info-tip"
+                        data-tip="Ulcers in the heel, midfoot, or posterior foot often have worse perfusion and slower healing."
+                      >
+                        ⓘ
+                      </span>
+                    )}
+                  </span>
+                  <strong>{sinbad.siteScore}</strong>
+                </div>
 
-            <div className="thin-divider" />
+                <div className="metric-row">
+                  <span>
+                    Ischemia
+                    {sinbad.ischemiaScore > 0 && (
+                      <span
+                        className="info-tip"
+                        data-tip="Necrosis in a diabetic foot ulcer is a red flag for severe ischemia because tissue has already died from lack of blood flow."
+                      >
+                        ⓘ
+                      </span>
+                    )}
+                  </span>
+                  <strong>{sinbad.ischemiaScore}</strong>
+                </div>
 
-            <div className="metric-row highlight">
-              <span>Ulcer Region</span>
-              <strong>{result.ulcer_location || "Not detected"}</strong>
-            </div>
+                <div className="metric-row">
+                  <span>
+                    Bacterial Infection
+                    {sinbad.bacterialScore > 0 && (
+                      <span
+                        className="info-tip"
+                        data-tip="Bacteria can prolong and dysregulate inflammation, slowing wound healing."
+                      >
+                        ⓘ
+                      </span>
+                    )}
+                  </span>
+                  <strong>{sinbad.bacterialScore}</strong>
+                </div>
 
-            <div className="metric-row highlight">
-              <span>Ulcer Area</span>
-              <strong>
-                {Number(result.segmentation_area_mm2).toFixed(2)} mm²
-              </strong>
-            </div>
+                <div className="metric-row">
+                  <span>
+                    Area
+                    {sinbad.areaScore > 0 && (
+                      <span
+                        className="info-tip"
+                        data-tip="Wound area is larger than or equal to 1 cm². Larger wounds are generally slower to heal."
+                      >
+                        ⓘ
+                      </span>
+                    )}
+                  </span>
+                  <strong>{sinbad.areaScore}</strong>
+                </div>
+              </div>
 
-            <div className="metric-row">
-              <span>Area in cm²</span>
-              <strong>{sinbad.areaCm2.toFixed(2)} cm²</strong>
-            </div>
+              <div className="thin-divider" />
 
-            <div className="metric-row">
-              <span>Necrosis</span>
-              <strong>{(result.necrosis_ratio * 100).toFixed(2)}%</strong>
-            </div>
+              <div className="metric-row highlight">
+                <span>Ulcer Region</span>
+                <strong>{result.ulcer_location || "Not detected"}</strong>
+              </div>
 
-            <div className="metric-row">
-              <span>Slough</span>
-              <strong>{(result.slough_ratio * 100).toFixed(2)}%</strong>
-            </div>
+              <div className="metric-row highlight">
+                <span>Ulcer Area</span>
+                <strong>
+                  {Number(result.segmentation_area_mm2).toFixed(2)} mm²
+                </strong>
+              </div>
 
-            <div className="metric-row">
-              <span>Granulation</span>
-              <strong>{(result.granulation_ratio * 100).toFixed(2)}%</strong>
-            </div>
-          </section>
+              <div className="metric-row">
+                <span>Area in cm²</span>
+                <strong>{sinbad.areaCm2.toFixed(2)} cm²</strong>
+              </div>
+
+              <div className="metric-row">
+                <span>Necrosis</span>
+                <strong>{sinbad.necrosisPct.toFixed(2)}%</strong>
+              </div>
+
+              <div className="metric-row">
+                <span>Slough</span>
+                <strong>{sinbad.sloughPct.toFixed(2)}%</strong>
+              </div>
+
+              <div className="metric-row">
+                <span>Granulation</span>
+                <strong>{sinbad.granulationPct.toFixed(2)}%</strong>
+              </div>
+            </section>
+          )}
+
+          {activeTab === "maintenance" && (
+            <section className="result-panel">
+              <h2>Care Recommendation</h2>
+
+              <div className="care-card">
+                <div className="care-header">
+                  <span>Dominant Tissue</span>
+                  <strong>{rec.tissue}</strong>
+                </div>
+
+                <div className="care-section">
+                  <h3>Therapeutic Goal</h3>
+                  <p>{rec.goal}</p>
+                </div>
+
+                <div className="care-section">
+                  <h3>Role of Dressing</h3>
+                  <p>{rec.dressingRole}</p>
+                </div>
+
+                <div className="care-section">
+                  <h3>Wound Bed Preparation</h3>
+                  <p>{rec.woundBed}</p>
+                </div>
+
+                <div className="care-section">
+                  <h3>Primary Dressing</h3>
+                  <p>{rec.primary}</p>
+                </div>
+
+                <div className="care-section">
+                  <h3>Secondary Dressing</h3>
+                  <p>{rec.secondary}</p>
+                </div>
+              </div>
+            </section>
+          )}
 
           <p className="scan-id">Scan ID: {scanId}</p>
 
