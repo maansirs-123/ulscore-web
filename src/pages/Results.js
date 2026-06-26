@@ -84,6 +84,11 @@ export default function Results() {
           <section className="result-panel">
             <h2>{result.classification}</h2>
 
+              <div className="metric-row highlight">
+                <span>Ulcer Region</span>
+                <strong>{result.ulcer_location || "Not detected"}</strong>
+              </div>
+
             <div className="metric-row highlight">
               <span>Ulcer Area</span>
               <strong>{Number(result.segmentation_area_mm2).toFixed(2)} mm²</strong>
