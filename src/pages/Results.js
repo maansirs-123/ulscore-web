@@ -3,6 +3,144 @@ import { useNavigate, useParams } from "react-router-dom";
 
 const PI_API = "http://172.20.10.2:5000";
 
+function calculateModifiedSinbad(result) {
+  const ulcerRegion = (result.ulcer_location || "").toLowerCase();
+
+  const necrosisPct = Number(result.necrosis_ratio || 0) * 100;
+  const sloughPct = Number(result.slough_ratio || 0) * 100;
+  const granulationPct = Number(result.granulation_ratio || 0) * 100;
+
+  const areaMm2 = Number(result.segmentation_area_mm2 || 0);
+  const areaCm2 = areaMm2 / 100;
+
+  let score = 0;
+
+  const siteScore =
+    ulcerRegion.includes("midfoot") || ulcerRegion.includes("hindfoot") ? 1 : 0;
+
+  const ischemiaScore = necrosisPct > 0 ? 1 : 0;
+
+  let bacterialScore = 0;
+  if (sloughPct > granulationPct) {
+    bacterialScore = 1;
+  } else if (granulationPct > sloughPct) {
+    bacterialScore = 0.5;
+  }
+
+  const areaScore = areaCm2 >= 1 ? 1 : 0;
+
+  score = siteScore + ischemiaScore + bacterialScore + areaScore;
+
+  let riskLabel = "No Risk";
+  let riskDescription = "No major risk indicators detected.";
+
+  if (score > 0 && score <= 1) {
+    riskLabel = "Low Risk";
+    riskDescription = "Likely to heal with basic care.";
+  } else if (score > 1 && score <= 2.5) {
+    riskLabel = "Moderate Risk";
+    riskDescription = "Needs active wound management.";
+  } else if (score > 2.5) {
+    riskLabel = "High Risk";
+    riskDescription = "Requires debridement/specialist care.";
+  }
+
+  return {
+    score,
+    maxScore: 4,
+    siteScore,
+    ischemiaScore,
+    bacterialScore,
+    areaScore,
+    riskLabel,
+    riskDescription,
+    areaCm2,
+  };
+}
+
+function RiskGauge({ score, maxScore, riskLabel }) {
+  const percent = Math.min(score / maxScore, 1);
+  const angle = -90 + percent * 180;
+
+  return (
+    <div className="risk-gauge-card">
+      <div className="gauge-wrap">
+        <svg viewBox="0 0 300 180" className="risk-gauge">
+          <path
+            d="M 35 150 A 115 115 0 0 1 265 150"
+            fill="none"
+            stroke="#eef0f4"
+            strokeWidth="32"
+            strokeLinecap="round"
+          />
+
+          <path
+            d="M 35 150 A 115 115 0 0 1 92 50"
+            fill="none"
+            stroke="#3bd671"
+            strokeWidth="32"
+          />
+
+          <path
+            d="M 92 50 A 115 115 0 0 1 150 35"
+            fill="none"
+            stroke="#ffd447"
+            strokeWidth="32"
+          />
+
+          <path
+            d="M 150 35 A 115 115 0 0 1 208 50"
+            fill="none"
+            stroke="#ff9f2e"
+            strokeWidth="32"
+          />
+
+          <path
+            d="M 208 50 A 115 115 0 0 1 265 150"
+            fill="none"
+            stroke="#ff375f"
+            strokeWidth="32"
+            strokeLinecap="round"
+          />
+
+          <g transform={`rotate(${angle} 150 150)`}>
+            <line
+              x1="150"
+              y1="150"
+              x2="150"
+              y2="58"
+              stroke="#112b5c"
+              strokeWidth="8"
+              strokeLinecap="round"
+            />
+          </g>
+
+          <circle cx="150" cy="150" r="13" fill="#112b5c" />
+          <circle cx="150" cy="150" r="6" fill="white" />
+
+          <text x="45" y="170" className="gauge-label">
+            No
+          </text>
+          <text x="92" y="55" className="gauge-label">
+            Low
+          </text>
+          <text x="150" y="28" className="gauge-label" textAnchor="middle">
+            Moderate
+          </text>
+          <text x="230" y="55" className="gauge-label">
+            High
+          </text>
+        </svg>
+      </div>
+
+      <h3>{riskLabel}</h3>
+      <div className="score-number">
+        {score.toFixed(1)} / {maxScore}
+      </div>
+    </div>
+  );
+}
+
 export default function Results() {
   const { scanId } = useParams();
   const navigate = useNavigate();
@@ -34,11 +172,9 @@ export default function Results() {
       <main className="app-page">
         <section className="phone-card">
           <img src="/ulscore-logo.png" alt="ULScore" className="logo" />
-
           <section className="content-card">
             <h1>Could not load results</h1>
             <p className="status-text error">{error}</p>
-
             <button className="primary-button" onClick={() => navigate("/scan")}>
               Back to Scan
             </button>
@@ -53,7 +189,6 @@ export default function Results() {
       <main className="app-page">
         <section className="phone-card">
           <img src="/ulscore-logo.png" alt="ULScore" className="logo" />
-
           <section className="content-card">
             <h1>Loading Results...</h1>
             <p className="status-text">Fetching scan {scanId}</p>
@@ -63,11 +198,12 @@ export default function Results() {
     );
   }
 
+  const sinbad = calculateModifiedSinbad(result);
+
   return (
     <main className="app-page">
       <section className="phone-card">
         <img src="/ulscore-logo.png" alt="ULScore" className="logo" />
-
         <div className="gradient-wave" />
 
         <section className="content-card">
@@ -82,24 +218,61 @@ export default function Results() {
           />
 
           <section className="result-panel">
-            <h2>{result.classification}</h2>
+            <h2>Modified SINBAD Risk Score</h2>
 
-              <div className="metric-row highlight">
-                <span>Ulcer Region</span>
-                <strong>{result.ulcer_location || "Not detected"}</strong>
-              </div>
+            <RiskGauge
+              score={sinbad.score}
+              maxScore={sinbad.maxScore}
+              riskLabel={sinbad.riskLabel}
+            />
+
+            <p className="risk-description">{sinbad.riskDescription}</p>
 
             <div className="metric-row highlight">
-              <span>Ulcer Area</span>
-              <strong>{Number(result.segmentation_area_mm2).toFixed(2)} mm²</strong>
-            </div>
-
-            <div className="metric-row">
-              <span>Segmentation Pixels</span>
-              <strong>{result.segmentation_pixel_count}</strong>
+              <span>Total Score</span>
+              <strong>{sinbad.score.toFixed(1)} / {sinbad.maxScore}</strong>
             </div>
 
             <div className="thin-divider" />
+
+            <div className="metric-row">
+              <span>Site</span>
+              <strong>{sinbad.siteScore}</strong>
+            </div>
+
+            <div className="metric-row">
+              <span>Ischemia</span>
+              <strong>{sinbad.ischemiaScore}</strong>
+            </div>
+
+            <div className="metric-row">
+              <span>Bacterial Infection</span>
+              <strong>{sinbad.bacterialScore}</strong>
+            </div>
+
+            <div className="metric-row">
+              <span>Area</span>
+              <strong>{sinbad.areaScore}</strong>
+            </div>
+
+            <div className="thin-divider" />
+
+            <div className="metric-row highlight">
+              <span>Ulcer Region</span>
+              <strong>{result.ulcer_location || "Not detected"}</strong>
+            </div>
+
+            <div className="metric-row highlight">
+              <span>Ulcer Area</span>
+              <strong>
+                {Number(result.segmentation_area_mm2).toFixed(2)} mm²
+              </strong>
+            </div>
+
+            <div className="metric-row">
+              <span>Area in cm²</span>
+              <strong>{sinbad.areaCm2.toFixed(2)} cm²</strong>
+            </div>
 
             <div className="metric-row">
               <span>Necrosis</span>
