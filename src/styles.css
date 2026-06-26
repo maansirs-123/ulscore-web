@@ -244,6 +244,7 @@ h2 {
   margin: 0 0 18px;
 }
 
+
 @media (max-width: 480px) {
   .app-page {
     padding: 0;
@@ -269,7 +270,7 @@ h2 {
   h1 {
     font-size: 27px;
   }
-
+}
 .risk-gauge-card {
   width: 100%;
   margin: 18px 0 26px;
