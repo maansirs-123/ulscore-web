@@ -269,4 +269,53 @@ h2 {
   h1 {
     font-size: 27px;
   }
+
+
+
+  .risk-gauge-card {
+  width: 100%;
+  margin: 20px 0 24px;
+  padding: 18px 12px;
+  border-radius: 28px;
+  background: #fff7ef;
+  text-align: center;
+}
+
+.gauge-wrap {
+  width: 100%;
+  max-width: 330px;
+  margin: 0 auto;
+}
+
+.risk-gauge {
+  width: 100%;
+  height: auto;
+}
+
+.gauge-label {
+  font-size: 13px;
+  font-weight: 800;
+  fill: #112b5c;
+}
+
+.risk-gauge-card h3 {
+  margin: -8px 0 4px;
+  font-size: 30px;
+  font-weight: 900;
+  color: #ff375f;
+}
+
+.score-number {
+  font-size: 42px;
+  font-weight: 900;
+  color: #112b5c;
+}
+
+.risk-description {
+  margin: 8px 0 18px;
+  font-size: 18px;
+  font-weight: 700;
+  color: #ff6147;
+  line-height: 1.35;
+}
 }
