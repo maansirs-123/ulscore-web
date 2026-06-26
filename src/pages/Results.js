@@ -405,7 +405,7 @@ export default function Results() {
 
           {activeTab === "overview" && (
             <>
-              <h1>Wound Image</h1>
+              <h1>Foot Snapshot</h1>
 
               {hasUlcer(result) && (
                 <img
@@ -423,7 +423,7 @@ export default function Results() {
               )}
 
               <section className="result-panel">
-                <h2>Modified SINBAD Risk Score</h2>
+                <h2>Your ULScore is:</h2>
 
                 <RiskGauge
                   score={sinbad.score}
@@ -514,37 +514,39 @@ export default function Results() {
           )}
 
           {activeTab === "maintenance" && (
-            <section className="result-panel">
-              <h2>Care Recommendation</h2>
+  <section className="result-panel">
+    <h2>Care Recommendation</h2>
 
-              {!rec ? (
-                <div className="empty-care-card">
-                  <h3>No ulcer detected</h3>
-                  <p>
-                    No wound-care recommendation is generated because no ulcer
-                    was detected.
-                  </p>
-                </div>
-              ) : (
-                <div className="care-card">
-                  <div className={`care-banner ${rec.color}`}>
-                    <span>Dominant Tissue</span>
-                    <strong>{rec.tissue}</strong>
-                    <p>{rec.priority}</p>
-                  </div>
+    {!rec ? (
+      <div className="empty-care-card">
+        <h3>No ulcer detected</h3>
+        <p>
+          No wound-care recommendation is generated because no ulcer was detected.
+        </p>
+      </div>
+    ) : (
+      <div className="care-card">
+        <div className={`care-banner ${rec.color}`}>
+          <span>Dominant Tissue</span>
+          <strong>{rec.tissue}</strong>
+          <p>{rec.priority}</p>
+        </div>
 
-                  <div className="care-list">
-                    {rec.items.map((item) => (
-                      <div className="care-item" key={item.title}>
-                        <h3>{item.title}</h3>
-                        <p>{item.text}</p>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </section>
-          )}
+        <div className="care-list">
+          {rec.items.map((item) => (
+            <div className="care-item" key={item.title}>
+              <div className="care-icon-dot" />
+              <div>
+                <h3>{item.title}</h3>
+                <p>{item.text}</p>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    )}
+  </section>
+)}
 
           <p className="scan-id">Scan ID: {scanId}</p>
           <button className="primary-button new-scan-button" onClick={() => navigate("/scan")}>

@@ -625,3 +625,97 @@ h2 {
   font-size: 14.5px;
   line-height: 1.45;
 }
+
+/* ================================
+   POLISHED CARE PAGE
+================================ */
+
+.content-card .care-card {
+  margin-top: 18px;
+}
+
+.content-card .care-banner {
+  padding: 20px;
+  border-radius: 26px;
+  margin-bottom: 18px;
+  color: white;
+  text-align: left;
+  box-shadow: 0 14px 28px rgba(47, 53, 66, 0.12);
+}
+
+.content-card .care-banner.black {
+  background: linear-gradient(135deg, #202635, #4b5263);
+}
+
+.content-card .care-banner.yellow {
+  background: linear-gradient(135deg, #ffb703, #ff9141);
+}
+
+.content-card .care-banner.red {
+  background: linear-gradient(135deg, #ff375f, #ff9141);
+}
+
+.content-card .care-banner span {
+  display: block;
+  font-size: 12px;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  opacity: 0.9;
+  margin-bottom: 6px;
+}
+
+.content-card .care-banner strong {
+  display: block;
+  font-size: 24px;
+  font-weight: 900;
+  margin-bottom: 8px;
+}
+
+.content-card .care-banner p {
+  margin: 0;
+  font-size: 15.5px;
+  line-height: 1.45;
+}
+
+.content-card .care-list {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.content-card .care-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  padding: 18px;
+  border-radius: 22px;
+  background: #fff8f2;
+  border: 1px solid #ffe0cf;
+  text-align: left;
+  box-shadow: 0 8px 20px rgba(47, 53, 66, 0.06);
+}
+
+.content-card .care-icon-dot {
+  width: 13px;
+  height: 13px;
+  margin-top: 6px;
+  border-radius: 999px;
+  background: linear-gradient(135deg, #ff375f, #ff9141);
+  box-shadow: 0 0 0 5px rgba(255, 107, 61, 0.13);
+  flex-shrink: 0;
+}
+
+.content-card .care-item h3 {
+  margin: 0 0 7px;
+  color: #243047;
+  font-size: 17px;
+  font-weight: 900;
+}
+
+.content-card .care-item p {
+  margin: 0;
+  color: #4b5563;
+  font-size: 14.5px;
+  line-height: 1.45;
+}
