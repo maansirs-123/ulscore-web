@@ -274,34 +274,34 @@ function BreakdownItem({ title, score, active, rationale }) {
 
   return (
     <div className={`breakdown-item ${active ? "active" : ""}`}>
-      <div className="breakdown-top">
-        <div className="breakdown-title-wrap">
-          <span>{title}</span>
-
-          {active && (
-            <button
-              type="button"
-              className="info-button"
-              onClick={() => setShowInfo(!showInfo)}
-              onMouseEnter={() => setShowInfo(true)}
-              onMouseLeave={() => setShowInfo(false)}
-              aria-label={`Show ${title} explanation`}
-            >
-              <Info size={17} strokeWidth={2.6} />
-            </button>
-          )}
+      <div className="breakdown-main">
+        <div className="breakdown-left">
+          <span className="breakdown-label">{title}</span>
+          <strong className="breakdown-score">{score}</strong>
         </div>
 
-        <strong>{score}</strong>
+        {active && (
+          <button
+            type="button"
+            className="info-button"
+            onClick={() => setShowInfo(!showInfo)}
+            aria-label={`Show ${title} explanation`}
+          >
+            <Info size={18} strokeWidth={2.8} />
+          </button>
+        )}
       </div>
 
       {!active && (
-        <p className="muted">No risk point added for this category.</p>
+        <p className="breakdown-muted">
+          No risk point added for this category.
+        </p>
       )}
 
       {active && showInfo && (
         <div className="info-popover">
-          {rationale}
+          <strong>Why this matters</strong>
+          <p>{rationale}</p>
         </div>
       )}
     </div>
@@ -383,23 +383,25 @@ export default function Results() {
           <div className="badge">SCAN RESULT</div>
 
 
-          <div className="result-tabs">
-          {[
-            ["overview", "Score", Activity],
-            ["breakdown", "Breakdown", ClipboardList],
-            ["maintenance", "Care", HeartPulse],
-          ].map(([key, label, Icon]) => (
-            <button
-              key={key}
-              type="button"
-              className={`result-tab ${activeTab === key ? "active" : ""}`}
-              onClick={() => setActiveTab(key)}
-            >
-              <Icon size={17} strokeWidth={2.6} />
-              <span>{label}</span>
-            </button>
-          ))}
-        </div>
+   
+
+        <div className="result-tabs">
+            {[
+              ["overview", "Score", Activity],
+              ["breakdown", "Breakdown", ClipboardList],
+              ["maintenance", "Care", HeartPulse],
+            ].map(([key, label, Icon]) => (
+              <button
+                key={key}
+                type="button"
+                className={`result-tab ${activeTab === key ? "active" : ""}`}
+                onClick={() => setActiveTab(key)}
+              >
+                <Icon size={18} strokeWidth={2.7} />
+                <span>{label}</span>
+              </button>
+            ))}
+          </div>
 
           {activeTab === "overview" && (
             <>
