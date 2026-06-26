@@ -3,6 +3,13 @@ import { useNavigate, useParams } from "react-router-dom";
 
 const PI_API = "http://172.20.10.2:5000";
 
+function hasUlcer(result) {
+  return (
+    Number(result.segmentation_pixel_count || 0) > 0 &&
+    Number(result.segmentation_area_mm2 || 0) > 0
+  );
+}
+
 function calculateModifiedSinbad(result) {
   const ulcerRegion = (result.ulcer_location || "").toLowerCase();
 
@@ -12,6 +19,23 @@ function calculateModifiedSinbad(result) {
 
   const areaMm2 = Number(result.segmentation_area_mm2 || 0);
   const areaCm2 = areaMm2 / 100;
+
+  if (!hasUlcer(result)) {
+    return {
+      score: 0,
+      maxScore: 4,
+      siteScore: 0,
+      ischemiaScore: 0,
+      bacterialScore: 0,
+      areaScore: 0,
+      riskLabel: "No Risk",
+      riskDescription: "No ulcer detected.",
+      areaCm2,
+      necrosisPct,
+      sloughPct,
+      granulationPct,
+    };
+  }
 
   const siteScore =
     ulcerRegion.includes("midfoot") || ulcerRegion.includes("hindfoot") ? 1 : 0;
@@ -60,6 +84,8 @@ function calculateModifiedSinbad(result) {
 }
 
 function getRecommendation(result) {
+  if (!hasUlcer(result)) return null;
+
   const necrosis = Number(result.necrosis_ratio || 0) * 100;
   const slough = Number(result.slough_ratio || 0) * 100;
   const granulation = Number(result.granulation_ratio || 0) * 100;
@@ -67,64 +93,94 @@ function getRecommendation(result) {
   if (necrosis > 0) {
     return {
       tissue: "Necrotic tissue",
-      goal:
-        "Remove devitalized tissue. Do not attempt debridement if vascular insufficiency is suspected. Keep dry and refer for vascular assessment.",
-      dressingRole:
-        "Hydrate wound bed and promote autolytic debridement.",
-      woundBed:
-        "Surgical or mechanical debridement if clinically appropriate.",
-      primary:
-        "Hydrogel or honey.",
-      secondary:
-        "Polyurethane film dressing.",
+      priority: "High-priority wound care review recommended.",
+      color: "black",
+      items: [
+        {
+          title: "Therapeutic Goal",
+          text: "Remove devitalized tissue. Do not attempt debridement if vascular insufficiency is suspected. Keep dry and refer for vascular assessment.",
+        },
+        {
+          title: "Role of Dressing",
+          text: "Hydrate the wound bed and promote autolytic debridement.",
+        },
+        {
+          title: "Wound Bed Preparation",
+          text: "Surgical or mechanical debridement if clinically appropriate.",
+        },
+        {
+          title: "Primary Dressing",
+          text: "Hydrogel or honey.",
+        },
+        {
+          title: "Secondary Dressing",
+          text: "Polyurethane film dressing.",
+        },
+      ],
     };
   }
 
   if (slough > granulation && slough > 0) {
     return {
       tissue: "Sloughy wound bed",
-      goal:
-        "Remove slough and provide a clean wound bed for granulation tissue.",
-      dressingRole:
-        "Rehydrate wound bed, control moisture balance, and promote autolytic debridement.",
-      woundBed:
-        "Wound cleansing. Consider surgical or mechanical debridement if appropriate.",
-      primary:
-        "Hydrogel, honey, or absorbent dressing depending on exudate.",
-      secondary:
-        "Polyurethane film dressing, low-adherent silicone dressing, or retention bandage.",
+      priority: "Focus on slough removal and moisture balance.",
+      color: "yellow",
+      items: [
+        {
+          title: "Therapeutic Goal",
+          text: "Remove slough and provide a clean wound bed for granulation tissue.",
+        },
+        {
+          title: "Role of Dressing",
+          text: "Rehydrate the wound bed, control moisture balance, and promote autolytic debridement.",
+        },
+        {
+          title: "Wound Bed Preparation",
+          text: "Wound cleansing. Consider surgical or mechanical debridement if appropriate.",
+        },
+        {
+          title: "Primary Dressing",
+          text: "Hydrogel, honey, or absorbent dressing depending on exudate.",
+        },
+        {
+          title: "Secondary Dressing",
+          text: "Polyurethane film dressing, low-adherent silicone dressing, or retention bandage.",
+        },
+      ],
     };
   }
 
   if (granulation > 0) {
     return {
       tissue: "Granulating wound bed",
-      goal:
-        "Promote granulation and provide a healthy wound bed for epithelialization.",
-      dressingRole:
-        "Maintain moisture balance and protect new tissue growth.",
-      woundBed:
-        "Wound cleansing. Consider barrier products if exudate is high.",
-      primary:
-        "Hydrogel, low-adherent silicone dressing, or absorbent dressing if exudate is high.",
-      secondary:
-        "Pad and/or retention bandage. Avoid overly occlusive dressings.",
+      priority: "Protect healthy tissue and support epithelialization.",
+      color: "red",
+      items: [
+        {
+          title: "Therapeutic Goal",
+          text: "Promote granulation and provide a healthy wound bed for epithelialization.",
+        },
+        {
+          title: "Role of Dressing",
+          text: "Maintain moisture balance and protect new tissue growth.",
+        },
+        {
+          title: "Wound Bed Preparation",
+          text: "Wound cleansing. Consider barrier products if exudate is high.",
+        },
+        {
+          title: "Primary Dressing",
+          text: "Hydrogel, low-adherent silicone dressing, or absorbent dressing if exudate is high.",
+        },
+        {
+          title: "Secondary Dressing",
+          text: "Pad and/or retention bandage. Avoid overly occlusive dressings.",
+        },
+      ],
     };
   }
 
-  return {
-    tissue: "No dominant wound tissue detected",
-    goal:
-      "Continue monitoring and reassess wound appearance.",
-    dressingRole:
-      "Protect the wound bed and maintain a clean wound environment.",
-    woundBed:
-      "Gentle wound cleansing.",
-    primary:
-      "Low-adherent dressing.",
-    secondary:
-      "Protective secondary dressing if needed.",
-  };
+  return null;
 }
 
 function RiskGauge({ score, maxScore, riskLabel }) {
@@ -141,28 +197,24 @@ function RiskGauge({ score, maxScore, riskLabel }) {
           strokeWidth="34"
           strokeLinecap="round"
         />
-
         <path
           d="M 55 160 A 105 105 0 0 1 107 69"
           fill="none"
           stroke="#37d66f"
           strokeWidth="34"
         />
-
         <path
           d="M 107 69 A 105 105 0 0 1 160 55"
           fill="none"
           stroke="#ffd84d"
           strokeWidth="34"
         />
-
         <path
           d="M 160 55 A 105 105 0 0 1 213 69"
           fill="none"
           stroke="#ffa02b"
           strokeWidth="34"
         />
-
         <path
           d="M 213 69 A 105 105 0 0 1 265 160"
           fill="none"
@@ -206,6 +258,23 @@ function RiskGauge({ score, maxScore, riskLabel }) {
           {score.toFixed(1)} / {maxScore}
         </div>
       </div>
+    </div>
+  );
+}
+
+function BreakdownItem({ title, score, active, rationale }) {
+  return (
+    <div className={`breakdown-item ${active ? "active" : ""}`}>
+      <div className="breakdown-top">
+        <span>{title}</span>
+        <strong>{score}</strong>
+      </div>
+
+      {active ? (
+        <p>{rationale}</p>
+      ) : (
+        <p className="muted">No risk point added for this category.</p>
+      )}
     </div>
   );
 }
@@ -285,37 +354,40 @@ export default function Results() {
           <div className="badge">SCAN RESULT</div>
 
           <div className="result-tabs">
-            <button
-              className={activeTab === "overview" ? "tab active" : "tab"}
-              onClick={() => setActiveTab("overview")}
-            >
-              Score
-            </button>
-
-            <button
-              className={activeTab === "breakdown" ? "tab active" : "tab"}
-              onClick={() => setActiveTab("breakdown")}
-            >
-              Breakdown
-            </button>
-
-            <button
-              className={activeTab === "maintenance" ? "tab active" : "tab"}
-              onClick={() => setActiveTab("maintenance")}
-            >
-              Care
-            </button>
+            {[
+              ["overview", "Score"],
+              ["breakdown", "Breakdown"],
+              ["maintenance", "Care"],
+            ].map(([key, label]) => (
+              <button
+                key={key}
+                type="button"
+                className={`result-tab ${activeTab === key ? "active" : ""}`}
+                onClick={() => setActiveTab(key)}
+              >
+                {label}
+              </button>
+            ))}
           </div>
 
           {activeTab === "overview" && (
             <>
               <h1>Wound Image</h1>
 
-              <img
-                src={result.boxed_image_url}
-                alt="Boxed wound result"
-                className="result-image"
-              />
+              {hasUlcer(result) && (
+                <img
+                  src={result.boxed_image_url}
+                  alt="Boxed wound result"
+                  className="result-image"
+                />
+              )}
+
+              {!hasUlcer(result) && (
+                <div className="empty-care-card">
+                  <h3>No ulcer detected</h3>
+                  <p>No wound box or care recommendation was generated.</p>
+                </div>
+              )}
 
               <section className="result-panel">
                 <h2>Modified SINBAD Risk Score</h2>
@@ -342,100 +414,68 @@ export default function Results() {
             <section className="result-panel">
               <h2>Score Breakdown</h2>
 
-              <div className="score-breakdown-card">
-                <div className="metric-row">
-                  <span>
-                    Site
-                    {sinbad.siteScore > 0 && (
-                      <span
-                        className="info-tip"
-                        data-tip="Ulcers in the heel, midfoot, or posterior foot often have worse perfusion and slower healing."
-                      >
-                        ⓘ
-                      </span>
-                    )}
-                  </span>
-                  <strong>{sinbad.siteScore}</strong>
+              <div className="breakdown-grid">
+                <BreakdownItem
+                  title="Site"
+                  score={sinbad.siteScore}
+                  active={sinbad.siteScore > 0}
+                  rationale="Midfoot or hindfoot ulcers often have worse perfusion and slower healing."
+                />
+
+                <BreakdownItem
+                  title="Ischemia"
+                  score={sinbad.ischemiaScore}
+                  active={sinbad.ischemiaScore > 0}
+                  rationale="Necrosis is a red flag because tissue death can indicate poor blood flow."
+                />
+
+                <BreakdownItem
+                  title="Bacteria"
+                  score={sinbad.bacterialScore}
+                  active={sinbad.bacterialScore > 0}
+                  rationale="Bacteria can prolong inflammation and slow wound healing."
+                />
+
+                <BreakdownItem
+                  title="Area"
+                  score={sinbad.areaScore}
+                  active={sinbad.areaScore > 0}
+                  rationale="Wound area is larger than or equal to 1 cm²."
+                />
+              </div>
+
+              <div className="metric-summary-card">
+                <div className="metric-row highlight">
+                  <span>Ulcer Region</span>
+                  <strong>{result.ulcer_location || "Not detected"}</strong>
+                </div>
+
+                <div className="metric-row highlight">
+                  <span>Ulcer Area</span>
+                  <strong>
+                    {Number(result.segmentation_area_mm2 || 0).toFixed(2)} mm²
+                  </strong>
                 </div>
 
                 <div className="metric-row">
-                  <span>
-                    Ischemia
-                    {sinbad.ischemiaScore > 0 && (
-                      <span
-                        className="info-tip"
-                        data-tip="Necrosis in a diabetic foot ulcer is a red flag for severe ischemia because tissue has already died from lack of blood flow."
-                      >
-                        ⓘ
-                      </span>
-                    )}
-                  </span>
-                  <strong>{sinbad.ischemiaScore}</strong>
+                  <span>Area in cm²</span>
+                  <strong>{sinbad.areaCm2.toFixed(2)} cm²</strong>
                 </div>
 
                 <div className="metric-row">
-                  <span>
-                    Bacterial Infection
-                    {sinbad.bacterialScore > 0 && (
-                      <span
-                        className="info-tip"
-                        data-tip="Bacteria can prolong and dysregulate inflammation, slowing wound healing."
-                      >
-                        ⓘ
-                      </span>
-                    )}
-                  </span>
-                  <strong>{sinbad.bacterialScore}</strong>
+                  <span>Necrosis</span>
+                  <strong>{sinbad.necrosisPct.toFixed(2)}%</strong>
                 </div>
 
                 <div className="metric-row">
-                  <span>
-                    Area
-                    {sinbad.areaScore > 0 && (
-                      <span
-                        className="info-tip"
-                        data-tip="Wound area is larger than or equal to 1 cm². Larger wounds are generally slower to heal."
-                      >
-                        ⓘ
-                      </span>
-                    )}
-                  </span>
-                  <strong>{sinbad.areaScore}</strong>
+                  <span>Slough</span>
+                  <strong>{sinbad.sloughPct.toFixed(2)}%</strong>
                 </div>
-              </div>
 
-              <div className="thin-divider" />
-
-              <div className="metric-row highlight">
-                <span>Ulcer Region</span>
-                <strong>{result.ulcer_location || "Not detected"}</strong>
-              </div>
-
-              <div className="metric-row highlight">
-                <span>Ulcer Area</span>
-                <strong>
-                  {Number(result.segmentation_area_mm2).toFixed(2)} mm²
-                </strong>
-              </div>
-
-              <div className="metric-row">
-                <span>Area in cm²</span>
-                <strong>{sinbad.areaCm2.toFixed(2)} cm²</strong>
-              </div>
-
-              <div className="metric-row">
-                <span>Necrosis</span>
-                <strong>{sinbad.necrosisPct.toFixed(2)}%</strong>
-              </div>
-
-              <div className="metric-row">
-                <span>Slough</span>
-                <strong>{sinbad.sloughPct.toFixed(2)}%</strong>
-              </div>
-
-              <div className="metric-row">
-                <span>Granulation</span>
-                <strong>{sinbad.granulationPct.toFixed(2)}%</strong>
+                <div className="metric-row">
+                  <span>Granulation</span>
+                  <strong>{sinbad.granulationPct.toFixed(2)}%</strong>
+                </div>
               </div>
             </section>
           )}
@@ -444,37 +484,32 @@ export default function Results() {
             <section className="result-panel">
               <h2>Care Recommendation</h2>
 
-              <div className="care-card">
-                <div className="care-header">
-                  <span>Dominant Tissue</span>
-                  <strong>{rec.tissue}</strong>
+              {!rec ? (
+                <div className="empty-care-card">
+                  <h3>No ulcer detected</h3>
+                  <p>
+                    No wound-care recommendation is generated because no ulcer
+                    was detected.
+                  </p>
                 </div>
+              ) : (
+                <div className="care-card">
+                  <div className={`care-banner ${rec.color}`}>
+                    <span>Dominant Tissue</span>
+                    <strong>{rec.tissue}</strong>
+                    <p>{rec.priority}</p>
+                  </div>
 
-                <div className="care-section">
-                  <h3>Therapeutic Goal</h3>
-                  <p>{rec.goal}</p>
+                  <div className="care-list">
+                    {rec.items.map((item) => (
+                      <div className="care-item" key={item.title}>
+                        <h3>{item.title}</h3>
+                        <p>{item.text}</p>
+                      </div>
+                    ))}
+                  </div>
                 </div>
-
-                <div className="care-section">
-                  <h3>Role of Dressing</h3>
-                  <p>{rec.dressingRole}</p>
-                </div>
-
-                <div className="care-section">
-                  <h3>Wound Bed Preparation</h3>
-                  <p>{rec.woundBed}</p>
-                </div>
-
-                <div className="care-section">
-                  <h3>Primary Dressing</h3>
-                  <p>{rec.primary}</p>
-                </div>
-
-                <div className="care-section">
-                  <h3>Secondary Dressing</h3>
-                  <p>{rec.secondary}</p>
-                </div>
-              </div>
+              )}
             </section>
           )}
 
