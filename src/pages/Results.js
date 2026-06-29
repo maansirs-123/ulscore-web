@@ -10,34 +10,42 @@ import {
 
 const PI_API = "http://172.20.10.2:5000";
 
+
+
 function hasUlcer(result) {
   return (
+    result &&
+    result.success !== false &&
     Number(result.segmentation_pixel_count || 0) > 0 &&
     Number(result.segmentation_area_mm2 || 0) > 0
   );
 }
 
 function calculateModifiedSinbad(result) {
-  const ulcerRegion = (result.ulcer_location || "").toLowerCase();
+  const ulcerRegion = (result?.ulcer_location || "").toLowerCase();
 
-  const necrosisPct = Number(result.necrosis_ratio || 0) * 100;
-  const sloughPct = Number(result.slough_ratio || 0) * 100;
-  const granulationPct = Number(result.granulation_ratio || 0) * 100;
+  const necrosisPct = Number(result?.necrosis_ratio || 0) * 100;
+  const sloughPct = Number(result?.slough_ratio || 0) * 100;
+  const granulationPct = Number(result?.granulation_ratio || 0) * 100;
 
-  const areaMm2 = Number(result.segmentation_area_mm2 || 0);
+  const areaMm2 = Number(result?.segmentation_area_mm2 || 0);
   const areaCm2 = areaMm2 / 100;
+
+  const depthMm = Number(result?.depth_mm || 0);
 
   if (!hasUlcer(result)) {
     return {
       score: 0,
-      maxScore: 4,
+      maxScore: 5,
       siteScore: 0,
       ischemiaScore: 0,
       bacterialScore: 0,
       areaScore: 0,
+      depthScore: 0,
       riskLabel: "No Risk",
       riskDescription: "No ulcer detected.",
       areaCm2,
+      depthMm,
       necrosisPct,
       sloughPct,
       granulationPct,
@@ -58,38 +66,42 @@ function calculateModifiedSinbad(result) {
 
   const areaScore = areaCm2 >= 1 ? 1 : 0;
 
-  const score = siteScore + ischemiaScore + bacterialScore + areaScore;
+  const depthScore = depthMm >= 1.5 ? 1 : 0;
+
+  const score =
+    siteScore + ischemiaScore + bacterialScore + areaScore + depthScore;
 
   let riskLabel = "No Risk";
   let riskDescription = "No major risk indicators detected.";
 
-  if (score > 0 && score <= 1) {
+  if (score > 0 && score <= 1.5) {
     riskLabel = "Low Risk";
     riskDescription = "Likely to heal with basic care.";
-  } else if (score > 1 && score <= 2.5) {
+  } else if (score > 1.5 && score <= 3) {
     riskLabel = "Moderate Risk";
     riskDescription = "Needs active wound management.";
-  } else if (score > 2.5) {
+  } else if (score > 3) {
     riskLabel = "High Risk";
     riskDescription = "Requires debridement/specialist care.";
   }
 
   return {
     score,
-    maxScore: 4,
+    maxScore: 5,
     siteScore,
     ischemiaScore,
     bacterialScore,
     areaScore,
+    depthScore,
     riskLabel,
     riskDescription,
     areaCm2,
+    depthMm,
     necrosisPct,
     sloughPct,
     granulationPct,
   };
 }
-
 function getRecommendation(result) {
   if (!hasUlcer(result)) return null;
 
@@ -322,9 +334,22 @@ export default function Results() {
         const response = await fetch(`${PI_API}/results/${scanId}`);
         const data = await response.json();
 
-        if (!response.ok || data.error) {
-          throw new Error(data.error || "Could not load results");
-        }
+  
+
+        if (!response.ok || data.error || !data.success) {
+            setResult({
+              success: false,
+              scan_id: scanId,
+              segmentation_pixel_count: 0,
+              segmentation_area_mm2: 0,
+              ulcer_location: "Not detected",
+              depth_mm: 0,
+              necrosis_ratio: 0,
+              slough_ratio: 0,
+              granulation_ratio: 0,
+            });
+            return;
+          }
 
         setResult(data);
       } catch (err) {
@@ -475,6 +500,13 @@ export default function Results() {
                   active={sinbad.areaScore > 0}
                   rationale="Wound area is larger than or equal to 1 cm²."
                 />
+
+                <BreakdownItem
+                  title="Depth"
+                  score={sinbad.depthScore}
+                  active={sinbad.depthScore > 0}
+                  rationale="Depth greater than or equal to 1.5 mm. Ulcer is NOT confined to skin or subcutaneous tissue."
+                  />
               </div>
 
               <div className="metric-summary-card">
@@ -488,6 +520,11 @@ export default function Results() {
                   <strong>
                     {Number(result.segmentation_area_mm2 || 0).toFixed(2)} mm²
                   </strong>
+                </div>
+
+                <div className="metric-row highlight">
+                  <span>Ulcer Depth</span>
+                  <strong>{sinbad.depthMm.toFixed(2)} mm</strong>
                 </div>
 
                 <div className="metric-row">
