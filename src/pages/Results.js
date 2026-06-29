@@ -527,7 +527,7 @@ export default function Results() {
     ) : (
       <div className="care-card">
         <div className={`care-banner ${rec.color}`}>
-          <span>Dominant Tissue</span>
+          <span>Problematic Tissue</span>
           <strong>{rec.tissue}</strong>
           <p>{rec.priority}</p>
         </div>
